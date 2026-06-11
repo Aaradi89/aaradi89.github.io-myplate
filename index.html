@@ -243,15 +243,7 @@
         top: 100px;
         bottom: 10px;
         width: 170px;
-        height: auto;
-        margin-bottom: 0;
         overflow-y: auto;
-      }
-
-      .foods {
-        flex-direction: column;
-        align-items: center;
-        flex-wrap: nowrap;
       }
 
       .food {
@@ -349,95 +341,87 @@
     </div>
 
     <button onclick="checkPlan()">Check Day Plan</button>
-
     <div id="result"></div>
   </main>
 
   <script>
+    const githubOwner = "aaradi89";
+    const githubRepo = "aaradi89.github.io-myplate";
+
     const folders = [
-      { folder: "./Vegetable", group: "vegetable" },
-      { folder: "./Fruit", group: "fruit" },
-      { folder: "./Protien", group: "protein" },
-      { folder: "./Grains", group: "grain" },
-      { folder: "./Dairy", group: "dairy" },
-      { folder: "./Others", group: "other" }
+      { folder: "Vegetable", group: "vegetable" },
+      { folder: "Fruit", group: "fruit" },
+      { folder: "Protien", group: "protein" },
+      { folder: "Protein", group: "protein" },
+      { folder: "Grains", group: "grain" },
+      { folder: "Dairy", group: "dairy" },
+      { folder: "Others", group: "other" }
     ];
 
-    const extensions = [
-      "jpg", "jpeg", "png", "webp",
-      "JPG", "JPEG", "PNG", "WEBP"
-    ];
+    const imageExtensions = ["jpg", "jpeg", "png", "webp", "gif"];
 
     let draggedFood = null;
 
-    function imageExists(src) {
-      return new Promise(resolve => {
-        const img = new Image();
+    async function loadImagesFromGitHubFolder(folderInfo) {
+      const apiUrl = `https://api.github.com/repos/${githubOwner}/${githubRepo}/contents/${folderInfo.folder}`;
 
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
+      try {
+        const response = await fetch(apiUrl);
 
-        img.src = src;
-      });
-    }
-
-    async function findImageForNumber(folder, number) {
-      for (const ext of extensions) {
-        const path = `${folder}/${number}.${ext}`;
-        const exists = await imageExists(path);
-
-        if (exists) {
-          console.log("Loaded:", path);
-          return path;
+        if (!response.ok) {
+          console.warn("Folder not found:", folderInfo.folder);
+          return [];
         }
 
-        console.log("Not found:", path);
+        const files = await response.json();
+
+        return files
+          .filter(file => file.type === "file")
+          .filter(file => {
+            const extension = file.name.split(".").pop().toLowerCase();
+            return imageExtensions.includes(extension);
+          })
+          .filter(file => {
+            const nameOnly = file.name.split(".")[0];
+            return /^\d+$/.test(nameOnly);
+          })
+          .sort((a, b) => {
+            const aNumber = Number(a.name.split(".")[0]);
+            const bNumber = Number(b.name.split(".")[0]);
+            return aNumber - bNumber;
+          })
+          .map(file => ({
+            src: file.download_url,
+            group: folderInfo.group
+          }));
+
+      } catch (error) {
+        console.error("Error loading folder:", folderInfo.folder, error);
+        return [];
       }
-
-      return null;
-    }
-
-    async function loadFolderImages(folderInfo) {
-      const images = [];
-      let number = 1;
-
-      while (true) {
-        const imagePath = await findImageForNumber(folderInfo.folder, number);
-
-        if (!imagePath) {
-          break;
-        }
-
-        images.push({
-          src: imagePath,
-          group: folderInfo.group
-        });
-
-        number++;
-      }
-
-      return images;
     }
 
     async function loadAllFoodImages() {
+      const loadingMessage = document.getElementById("loadingMessage");
+      loadingMessage.textContent = "Loading photos from GitHub...";
+
       let allImages = [];
 
       for (const folderInfo of folders) {
-        const imagesFromFolder = await loadFolderImages(folderInfo);
-        allImages = allImages.concat(imagesFromFolder);
+        const images = await loadImagesFromGitHubFolder(folderInfo);
+        allImages = allImages.concat(images);
       }
 
       shuffleArray(allImages);
       displayFoods(allImages);
 
-      const loadingMessage = document.getElementById("loadingMessage");
-
       if (allImages.length > 0) {
         loadingMessage.textContent = `${allImages.length} photos loaded.`;
       } else {
         loadingMessage.innerHTML = `
-          No photos found.<br>
-          Check folder names, spelling, capital letters, and image names.
+          No photos found.<br><br>
+          Check that your repo has folders named:<br>
+          Vegetable, Fruit, Protien, Grains, Dairy, Others
         `;
       }
     }
