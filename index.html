@@ -554,35 +554,30 @@
       }
     }
 
-    function getFoodGroupInZone(mealName, zoneName) {
-      const zone = document.querySelector(`[data-meal="${mealName}"][data-zone="${zoneName}"]`);
+    function zoneHasExactlyOneFood(mealName, zoneName, requiredGroup) {
+      const zone = document.querySelector(
+        `[data-meal="${mealName}"][data-zone="${zoneName}"]`
+      );
 
-      if (!zone) return null;
+      if (!zone) return false;
 
-      const food = zone.querySelector(".food");
+      const foods = zone.querySelectorAll(".food");
 
-      return food ? food.dataset.group : null;
+      return foods.length === 1 && foods[0].dataset.group === requiredGroup;
     }
 
     function checkMainMeal(mealName) {
-      const vegetable = getFoodGroupInZone(mealName, "vegetable");
-      const grain = getFoodGroupInZone(mealName, "grain");
-      const protein = getFoodGroupInZone(mealName, "protein");
-
       return (
-        vegetable === "vegetable" &&
-        grain === "grain" &&
-        protein === "protein"
+        zoneHasExactlyOneFood(mealName, "vegetable", "vegetable") &&
+        zoneHasExactlyOneFood(mealName, "grain", "grain") &&
+        zoneHasExactlyOneFood(mealName, "protein", "protein")
       );
     }
 
     function checkSnack(mealName) {
-      const fruit = getFoodGroupInZone(mealName, "fruit");
-      const dairy = getFoodGroupInZone(mealName, "dairy");
-
       return (
-        fruit === "fruit" &&
-        dairy === "dairy"
+        zoneHasExactlyOneFood(mealName, "fruit", "fruit") &&
+        zoneHasExactlyOneFood(mealName, "dairy", "dairy")
       );
     }
 
