@@ -230,6 +230,11 @@
       font-size: 15px;
       margin-top: 10px;
       line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .loading a {
+      color: #2563eb;
     }
 
     @media (max-width: 850px) {
@@ -345,71 +350,96 @@
   </main>
 
   <script>
-    const githubOwner = "aaradi89";
-    const githubRepo = "aaradi89.github.io-myplate";
+    /*
+      This code loads images directly from your GitHub Pages site.
+      It does NOT use GitHub API.
+
+      Your files should be like:
+
+      index.html
+      Vegetable/1.jpg
+      Vegetable/2.jpg
+      Fruit/1.jpg
+      Protien/1.jpg
+      Grains/1.jpg
+      Dairy/1.jpg
+      Others/1.jpg
+    */
+
+    const basePath = "https://aaradi89.github.io/aaradi89.github.io-myplate/";
 
     const folders = [
       { folder: "Vegetable", group: "vegetable" },
+      { folder: "Vegetables", group: "vegetable" },
+
       { folder: "Fruit", group: "fruit" },
+      { folder: "Fruits", group: "fruit" },
+
       { folder: "Protien", group: "protein" },
       { folder: "Protein", group: "protein" },
+
       { folder: "Grains", group: "grain" },
+      { folder: "Grain", group: "grain" },
+
       { folder: "Dairy", group: "dairy" },
-      { folder: "Others", group: "other" }
+
+      { folder: "Others", group: "other" },
+      { folder: "Other", group: "other" }
     ];
 
-    const imageExtensions = ["jpg", "jpeg", "png", "webp", "gif"];
+    const extensions = [
+      "jpg", "jpeg", "png", "webp",
+      "JPG", "JPEG", "PNG", "WEBP"
+    ];
+
+    const maxImagesPerFolder = 100;
 
     let draggedFood = null;
 
-    async function loadImagesFromGitHubFolder(folderInfo) {
-      const apiUrl = `https://api.github.com/repos/${githubOwner}/${githubRepo}/contents/${folderInfo.folder}`;
+    function imageExists(src) {
+      return new Promise(resolve => {
+        const img = new Image();
 
-      try {
-        const response = await fetch(apiUrl);
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
 
-        if (!response.ok) {
-          console.warn("Folder not found:", folderInfo.folder);
-          return [];
+        img.src = src + "?v=" + Date.now();
+      });
+    }
+
+    async function findImage(folder, number) {
+      for (const ext of extensions) {
+        const path = `${basePath}${folder}/${number}.${ext}`;
+        const exists = await imageExists(path);
+
+        if (exists) {
+          console.log("FOUND:", path);
+          return path;
         }
 
-        const files = await response.json();
-
-        return files
-          .filter(file => file.type === "file")
-          .filter(file => {
-            const extension = file.name.split(".").pop().toLowerCase();
-            return imageExtensions.includes(extension);
-          })
-          .filter(file => {
-            const nameOnly = file.name.split(".")[0];
-            return /^\d+$/.test(nameOnly);
-          })
-          .sort((a, b) => {
-            const aNumber = Number(a.name.split(".")[0]);
-            const bNumber = Number(b.name.split(".")[0]);
-            return aNumber - bNumber;
-          })
-          .map(file => ({
-            src: file.download_url,
-            group: folderInfo.group
-          }));
-
-      } catch (error) {
-        console.error("Error loading folder:", folderInfo.folder, error);
-        return [];
+        console.log("NOT FOUND:", path);
       }
+
+      return null;
     }
 
     async function loadAllFoodImages() {
       const loadingMessage = document.getElementById("loadingMessage");
-      loadingMessage.textContent = "Loading photos from GitHub...";
+      loadingMessage.textContent = "Searching for photos...";
 
       let allImages = [];
 
       for (const folderInfo of folders) {
-        const images = await loadImagesFromGitHubFolder(folderInfo);
-        allImages = allImages.concat(images);
+        for (let i = 1; i <= maxImagesPerFolder; i++) {
+          const imagePath = await findImage(folderInfo.folder, i);
+
+          if (imagePath) {
+            allImages.push({
+              src: imagePath,
+              group: folderInfo.group
+            });
+          }
+        }
       }
 
       shuffleArray(allImages);
@@ -420,8 +450,11 @@
       } else {
         loadingMessage.innerHTML = `
           No photos found.<br><br>
-          Check that your repo has folders named:<br>
-          Vegetable, Fruit, Protien, Grains, Dairy, Others
+          Test this photo link:<br>
+          <a href="${basePath}Vegetable/1.jpg" target="_blank">
+            ${basePath}Vegetable/1.jpg
+          </a><br><br>
+          If it opens 404, the folder name or image name is different.
         `;
       }
     }
