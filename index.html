@@ -227,14 +227,9 @@
 
     .loading {
       color: #666;
-      font-size: 15px;
+      font-size: 14px;
       margin-top: 10px;
       line-height: 1.4;
-      word-break: break-word;
-    }
-
-    .loading a {
-      color: #2563eb;
     }
 
     @media (max-width: 850px) {
@@ -248,7 +243,15 @@
         top: 100px;
         bottom: 10px;
         width: 170px;
+        height: auto;
+        margin-bottom: 0;
         overflow-y: auto;
+      }
+
+      .foods {
+        flex-direction: column;
+        align-items: center;
+        flex-wrap: nowrap;
       }
 
       .food {
@@ -346,53 +349,42 @@
     </div>
 
     <button onclick="checkPlan()">Check Day Plan</button>
+
     <div id="result"></div>
   </main>
 
   <script>
-    /*
-      This code loads images directly from your GitHub Pages site.
-      It does NOT use GitHub API.
-
-      Your files should be like:
-
-      index.html
-      Vegetable/1.jpg
-      Vegetable/2.jpg
-      Fruit/1.jpg
-      Protien/1.jpg
-      Grains/1.jpg
-      Dairy/1.jpg
-      Others/1.jpg
-    */
-
-    const basePath = "https://aaradi89.github.io/aaradi89.github.io-myplate/";
-
-    const folders = [
-      { folder: "Vegetable", group: "vegetable" },
-      { folder: "Vegetables", group: "vegetable" },
-
-      { folder: "Fruit", group: "fruit" },
-      { folder: "Fruits", group: "fruit" },
-
-      { folder: "Protien", group: "protein" },
-      { folder: "Protein", group: "protein" },
-
-      { folder: "Grains", group: "grain" },
-      { folder: "Grain", group: "grain" },
-
-      { folder: "Dairy", group: "dairy" },
-
-      { folder: "Others", group: "other" },
-      { folder: "Other", group: "other" }
+    const foodSources = [
+      {
+        group: "vegetable",
+        folders: ["Vegetable", "Vegetables", "vegetable", "vegetables"]
+      },
+      {
+        group: "fruit",
+        folders: ["Fruit", "Fruits", "fruit", "fruits"]
+      },
+      {
+        group: "protein",
+        folders: ["Protien", "Protein", "protien", "protein"]
+      },
+      {
+        group: "grain",
+        folders: ["Grains", "Grain", "grains", "grain"]
+      },
+      {
+        group: "dairy",
+        folders: ["Dairy", "dairy"]
+      },
+      {
+        group: "other",
+        folders: ["Others", "Other", "others", "other"]
+      }
     ];
 
     const extensions = [
-      "jpg", "jpeg", "png", "webp",
-      "JPG", "JPEG", "PNG", "WEBP"
+      "jpg", "jpeg", "png", "webp", "gif",
+      "JPG", "JPEG", "PNG", "WEBP", "GIF"
     ];
-
-    const maxImagesPerFolder = 100;
 
     let draggedFood = null;
 
@@ -403,60 +395,88 @@
         img.onload = () => resolve(true);
         img.onerror = () => resolve(false);
 
-        img.src = src + "?v=" + Date.now();
+        img.src = src;
       });
     }
 
-    async function findImage(folder, number) {
+    async function findImagePath(folder, number) {
       for (const ext of extensions) {
-        const path = `${basePath}${folder}/${number}.${ext}`;
+        const path = `${folder}/${number}.${ext}`;
         const exists = await imageExists(path);
 
         if (exists) {
-          console.log("FOUND:", path);
           return path;
         }
-
-        console.log("NOT FOUND:", path);
       }
 
       return null;
     }
 
+    async function loadImagesFromFolder(folder, group) {
+      const images = [];
+      let number = 1;
+
+      while (true) {
+        const imagePath = await findImagePath(folder, number);
+
+        if (!imagePath) {
+          break;
+        }
+
+        images.push({
+          src: imagePath,
+          group: group,
+          folder: folder,
+          number: number
+        });
+
+        number++;
+      }
+
+      return images;
+    }
+
+    async function loadImagesForCategory(source) {
+      for (const folder of source.folders) {
+        const images = await loadImagesFromFolder(folder, source.group);
+
+        if (images.length > 0) {
+          return images;
+        }
+      }
+
+      return [];
+    }
+
     async function loadAllFoodImages() {
       const loadingMessage = document.getElementById("loadingMessage");
-      loadingMessage.textContent = "Searching for photos...";
+      loadingMessage.textContent = "Loading food photos...";
 
       let allImages = [];
+      let report = [];
 
-      for (const folderInfo of folders) {
-        for (let i = 1; i <= maxImagesPerFolder; i++) {
-          const imagePath = await findImage(folderInfo.folder, i);
+      for (const source of foodSources) {
+        const images = await loadImagesForCategory(source);
 
-          if (imagePath) {
-            allImages.push({
-              src: imagePath,
-              group: folderInfo.group
-            });
-          }
-        }
+        allImages = allImages.concat(images);
+
+        report.push(`${source.group}: ${images.length}`);
       }
 
       shuffleArray(allImages);
       displayFoods(allImages);
 
-      if (allImages.length > 0) {
-        loadingMessage.textContent = `${allImages.length} photos loaded.`;
+      if (allImages.length === 0) {
+        loadingMessage.innerHTML =
+          "No photos found.<br>" +
+          "Check that index.html is beside the folders.<br>" +
+          "Example: Vegetable/1.jpg";
       } else {
-        loadingMessage.innerHTML = `
-          No photos found.<br><br>
-          Test this photo link:<br>
-          <a href="${basePath}Vegetable/1.jpg" target="_blank">
-            ${basePath}Vegetable/1.jpg
-          </a><br><br>
-          If it opens 404, the folder name or image name is different.
-        `;
+        loadingMessage.textContent = `Loaded ${allImages.length} photos.`;
       }
+
+      console.log("Food loading report:", report.join(" | "));
+      console.log("Loaded images:", allImages);
     }
 
     function displayFoods(images) {
@@ -465,6 +485,7 @@
 
       images.forEach((image, index) => {
         const food = document.createElement("div");
+
         food.className = "food";
         food.draggable = true;
         food.dataset.group = image.group;
@@ -473,11 +494,14 @@
         const img = document.createElement("img");
         img.src = image.src;
         img.alt = "Food photo";
+        img.draggable = false;
 
         food.appendChild(img);
 
-        food.addEventListener("dragstart", () => {
+        food.addEventListener("dragstart", event => {
           draggedFood = food;
+          event.dataTransfer.setData("text/plain", food.dataset.id);
+          event.dataTransfer.effectAllowed = "move";
         });
 
         food.addEventListener("dragend", () => {
@@ -494,26 +518,30 @@
       dropZones.forEach(zone => {
         zone.addEventListener("dragover", event => {
           event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
         });
 
         zone.addEventListener("drop", event => {
           event.preventDefault();
 
-          if (!draggedFood) return;
+          const draggedId = event.dataTransfer.getData("text/plain");
+          const food = draggedFood || document.querySelector(`[data-id="${draggedId}"]`);
+
+          if (!food) return;
 
           if (zone.id === "foodBank") {
-            zone.appendChild(draggedFood);
+            zone.appendChild(food);
             clearResult();
             return;
           }
 
           const existingFood = zone.querySelector(".food");
 
-          if (existingFood && existingFood !== draggedFood) {
+          if (existingFood && existingFood !== food) {
             document.getElementById("foodBank").appendChild(existingFood);
           }
 
-          zone.appendChild(draggedFood);
+          zone.appendChild(food);
           clearResult();
         });
       });
@@ -528,6 +556,9 @@
 
     function getFoodGroupInZone(mealName, zoneName) {
       const zone = document.querySelector(`[data-meal="${mealName}"][data-zone="${zoneName}"]`);
+
+      if (!zone) return null;
+
       const food = zone.querySelector(".food");
 
       return food ? food.dataset.group : null;
