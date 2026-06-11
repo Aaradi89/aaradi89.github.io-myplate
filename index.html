@@ -227,8 +227,9 @@
 
     .loading {
       color: #666;
-      font-size: 16px;
+      font-size: 15px;
       margin-top: 10px;
+      line-height: 1.4;
     }
 
     @media (max-width: 850px) {
@@ -354,15 +355,18 @@
 
   <script>
     const folders = [
-      { folder: "Vegetable", group: "vegetable" },
-      { folder: "Fruit", group: "fruit" },
-      { folder: "Protien", group: "protein" },
-      { folder: "Grains", group: "grain" },
-      { folder: "Dairy", group: "dairy" },
-      { folder: "Others", group: "other" }
+      { folder: "./Vegetable", group: "vegetable" },
+      { folder: "./Fruit", group: "fruit" },
+      { folder: "./Protien", group: "protein" },
+      { folder: "./Grains", group: "grain" },
+      { folder: "./Dairy", group: "dairy" },
+      { folder: "./Others", group: "other" }
     ];
 
-    const extensions = ["jpg", "jpeg", "png", "webp", "JPG", "JPEG", "PNG", "WEBP"];
+    const extensions = [
+      "jpg", "jpeg", "png", "webp",
+      "JPG", "JPEG", "PNG", "WEBP"
+    ];
 
     let draggedFood = null;
 
@@ -383,8 +387,11 @@
         const exists = await imageExists(path);
 
         if (exists) {
+          console.log("Loaded:", path);
           return path;
         }
+
+        console.log("Not found:", path);
       }
 
       return null;
@@ -425,9 +432,14 @@
 
       const loadingMessage = document.getElementById("loadingMessage");
 
-      loadingMessage.textContent = allImages.length
-        ? ""
-        : "No photos found. Check folder names and image names.";
+      if (allImages.length > 0) {
+        loadingMessage.textContent = `${allImages.length} photos loaded.`;
+      } else {
+        loadingMessage.innerHTML = `
+          No photos found.<br>
+          Check folder names, spelling, capital letters, and image names.
+        `;
+      }
     }
 
     function displayFoods(images) {
