@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full Day Meal Plan Test</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f5f7;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 6px;
+    }
+
+    .instructions {
+      margin-bottom: 20px;
+      color: #444;
+    }
+
+    .food-panel {
+      position: fixed;
+      left: 20px;
+      top: 110px;
+      bottom: 20px;
+      width: 260px;
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .food-bank-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      position: sticky;
+      top: 0;
+      background: white;
+      padding-bottom: 10px;
+      z-index: 2;
+    }
+
+    .foods {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-height: 100%;
+    }
+
+    .food {
+      width: 105px;
+      aspect-ratio: 1 / 1;
+      border-radius: 12px;
+      border: 2px solid #ccc;
+      background: white;
+      cursor: grab;
+      overflow: hidden;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+
+    .food:active {
+      cursor: grabbing;
+    }
+
+    .food img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+
+    .main-content {
+      margin-left: 300px;
+      max-width: 900px;
+      margin-right: auto;
+      padding-bottom: 40px;
+    }
+
+    .meals {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      width: 100%;
+    }
+
+    .meal {
+      width: 100%;
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .meal h2 {
+      margin: 0 0 15px;
+      font-size: 24px;
+    }
+
+    .main-plate {
+      width: min(70vw, 430px);
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      border: 8px solid #d7d7d7;
+      background: #fafafa;
+      overflow: hidden;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+    }
+
+    .plate-zone {
+      overflow: hidden;
+      background: #fafafa;
+      position: relative;
+    }
+
+    .plate-half {
+      grid-row: 1 / 3;
+      grid-column: 1 / 2;
+      border-right: 4px solid #d7d7d7;
+    }
+
+    .plate-quarter-top {
+      grid-row: 1 / 2;
+      grid-column: 2 / 3;
+      border-bottom: 4px solid #d7d7d7;
+    }
+
+    .plate-quarter-bottom {
+      grid-row: 2 / 3;
+      grid-column: 2 / 3;
+    }
+
+    .plate-zone .food {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: auto;
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+    }
+
+    .plate-zone .food img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .snack-circles {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 25px;
+      flex-wrap: wrap;
+    }
+
+    .snack-circle {
+      width: min(35vw, 190px);
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      border: 7px solid #d7d7d7;
+      background: #fafafa;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .snack-circle .food {
+      width: 100%;
+      height: 100%;
+      aspect-ratio: auto;
+      border-radius: 50%;
+      border: none;
+      box-shadow: none;
+    }
+
+    .snack-circle .food img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    button {
+      margin-top: 30px;
+      padding: 14px 24px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    #result {
+      margin-top: 18px;
+      font-size: 21px;
+      font-weight: bold;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .fail {
+      color: #c0392b;
+    }
+
+    .loading {
+      color: #666;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 850px) {
+      body {
+        padding: 10px;
+      }
+
+      .food-panel {
+        position: fixed;
+        left: 10px;
+        top: 100px;
+        bottom: 10px;
+        width: 170px;
+        height: auto;
+        margin-bottom: 0;
+        overflow-y: auto;
+      }
+
+      .foods {
+        flex-direction: column;
+        align-items: center;
+        flex-wrap: nowrap;
+      }
+
+      .food {
+        width: 95px;
+      }
+
+      .main-content {
+        margin-left: 185px;
+        max-width: calc(100% - 185px);
+      }
+
+      .meal {
+        padding: 12px;
+      }
+
+      .meal h2 {
+        font-size: 20px;
+      }
+
+      .main-plate {
+        width: min(65vw, 340px);
+      }
+
+      .snack-circle {
+        width: min(28vw, 140px);
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .instructions {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Full Day Meal Plan Test</h1>
+  <p class="instructions">Drag the food photos to build a full day plan. Press check when finished.</p>
+
+  <div class="food-panel">
+    <div class="food-bank-title">Foods</div>
+    <div class="foods drop-zone" id="foodBank"></div>
+    <div class="loading" id="loadingMessage">Loading food photos...</div>
+  </div>
+
+  <main class="main-content">
+    <div class="meals">
+
+      <section class="meal">
+        <h2>Breakfast</h2>
+        <div class="main-plate">
+          <div class="plate-zone plate-half drop-zone" data-meal="breakfast" data-zone="vegetable"></div>
+          <div class="plate-zone plate-quarter-top drop-zone" data-meal="breakfast" data-zone="grain"></div>
+          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="breakfast" data-zone="protein"></div>
+        </div>
+      </section>
+
+      <section class="meal">
+        <h2>Snack</h2>
+        <div class="snack-circles">
+          <div class="snack-circle drop-zone" data-meal="snack1" data-zone="fruit"></div>
+          <div class="snack-circle drop-zone" data-meal="snack1" data-zone="dairy"></div>
+        </div>
+      </section>
+
+      <section class="meal">
+        <h2>Lunch</h2>
+        <div class="main-plate">
+          <div class="plate-zone plate-half drop-zone" data-meal="lunch" data-zone="vegetable"></div>
+          <div class="plate-zone plate-quarter-top drop-zone" data-meal="lunch" data-zone="grain"></div>
+          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="lunch" data-zone="protein"></div>
+        </div>
+      </section>
+
+      <section class="meal">
+        <h2>Snack</h2>
+        <div class="snack-circles">
+          <div class="snack-circle drop-zone" data-meal="snack2" data-zone="fruit"></div>
+          <div class="snack-circle drop-zone" data-meal="snack2" data-zone="dairy"></div>
+        </div>
+      </section>
+
+      <section class="meal">
+        <h2>Dinner</h2>
+        <div class="main-plate">
+          <div class="plate-zone plate-half drop-zone" data-meal="dinner" data-zone="vegetable"></div>
+          <div class="plate-zone plate-quarter-top drop-zone" data-meal="dinner" data-zone="grain"></div>
+          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="dinner" data-zone="protein"></div>
+        </div>
+      </section>
+
+    </div>
+
+    <button onclick="checkPlan()">Check Day Plan</button>
+
+    <div id="result"></div>
+  </main>
+
+  <script>
+    const folders = [
+      { folder: "Vegetable", group: "vegetable" },
+      { folder: "Fruit", group: "fruit" },
+      { folder: "Protien", group: "protein" },
+      { folder: "Grains", group: "grain" },
+      { folder: "Dairy", group: "dairy" },
+      { folder: "Others", group: "other" }
+    ];
+
+    const extensions = ["jpg", "jpeg", "png", "webp", "JPG", "JPEG", "PNG", "WEBP"];
+
+    let draggedFood = null;
+
+    function imageExists(src) {
+      return new Promise(resolve => {
+        const img = new Image();
+
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+
+        img.src = src;
+      });
+    }
+
+    async function findImageForNumber(folder, number) {
+      for (const ext of extensions) {
+        const path = `${folder}/${number}.${ext}`;
+        const exists = await imageExists(path);
+
+        if (exists) {
+          return path;
+        }
+      }
+
+      return null;
+    }
+
+    async function loadFolderImages(folderInfo) {
+      const images = [];
+      let number = 1;
+
+      while (true) {
+        const imagePath = await findImageForNumber(folderInfo.folder, number);
+
+        if (!imagePath) {
+          break;
+        }
+
+        images.push({
+          src: imagePath,
+          group: folderInfo.group
+        });
+
+        number++;
+      }
+
+      return images;
+    }
+
+    async function loadAllFoodImages() {
+      let allImages = [];
+
+      for (const folderInfo of folders) {
+        const imagesFromFolder = await loadFolderImages(folderInfo);
+        allImages = allImages.concat(imagesFromFolder);
+      }
+
+      shuffleArray(allImages);
+      displayFoods(allImages);
+
+      const loadingMessage = document.getElementById("loadingMessage");
+
+      loadingMessage.textContent = allImages.length
+        ? ""
+        : "No photos found. Check folder names and image names.";
+    }
+
+    function displayFoods(images) {
+      const foodBank = document.getElementById("foodBank");
+      foodBank.innerHTML = "";
+
+      images.forEach((image, index) => {
+        const food = document.createElement("div");
+        food.className = "food";
+        food.draggable = true;
+        food.dataset.group = image.group;
+        food.dataset.id = `food-${index}`;
+
+        const img = document.createElement("img");
+        img.src = image.src;
+        img.alt = "Food photo";
+
+        food.appendChild(img);
+
+        food.addEventListener("dragstart", () => {
+          draggedFood = food;
+        });
+
+        food.addEventListener("dragend", () => {
+          draggedFood = null;
+        });
+
+        foodBank.appendChild(food);
+      });
+    }
+
+    function setupDropZones() {
+      const dropZones = document.querySelectorAll(".drop-zone");
+
+      dropZones.forEach(zone => {
+        zone.addEventListener("dragover", event => {
+          event.preventDefault();
+        });
+
+        zone.addEventListener("drop", event => {
+          event.preventDefault();
+
+          if (!draggedFood) return;
+
+          if (zone.id === "foodBank") {
+            zone.appendChild(draggedFood);
+            clearResult();
+            return;
+          }
+
+          const existingFood = zone.querySelector(".food");
+
+          if (existingFood && existingFood !== draggedFood) {
+            document.getElementById("foodBank").appendChild(existingFood);
+          }
+
+          zone.appendChild(draggedFood);
+          clearResult();
+        });
+      });
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const randomIndex = Math.floor(Math.random() * (i + 1));
+        [array[i], array[randomIndex]] = [array[randomIndex], array[i]];
+      }
+    }
+
+    function getFoodGroupInZone(mealName, zoneName) {
+      const zone = document.querySelector(`[data-meal="${mealName}"][data-zone="${zoneName}"]`);
+      const food = zone.querySelector(".food");
+
+      return food ? food.dataset.group : null;
+    }
+
+    function checkMainMeal(mealName) {
+      const vegetable = getFoodGroupInZone(mealName, "vegetable");
+      const grain = getFoodGroupInZone(mealName, "grain");
+      const protein = getFoodGroupInZone(mealName, "protein");
+
+      return (
+        vegetable === "vegetable" &&
+        grain === "grain" &&
+        protein === "protein"
+      );
+    }
+
+    function checkSnack(mealName) {
+      const fruit = getFoodGroupInZone(mealName, "fruit");
+      const dairy = getFoodGroupInZone(mealName, "dairy");
+
+      return (
+        fruit === "fruit" &&
+        dairy === "dairy"
+      );
+    }
+
+    function checkPlan() {
+      const breakfastCorrect = checkMainMeal("breakfast");
+      const snack1Correct = checkSnack("snack1");
+      const lunchCorrect = checkMainMeal("lunch");
+      const snack2Correct = checkSnack("snack2");
+      const dinnerCorrect = checkMainMeal("dinner");
+
+      const result = document.getElementById("result");
+
+      if (
+        breakfastCorrect &&
+        snack1Correct &&
+        lunchCorrect &&
+        snack2Correct &&
+        dinnerCorrect
+      ) {
+        result.textContent = "Correct!";
+        result.className = "success";
+      } else {
+        result.textContent = "Not correct. Try again.";
+        result.className = "fail";
+      }
+    }
+
+    function clearResult() {
+      const result = document.getElementById("result");
+      result.textContent = "";
+      result.className = "";
+    }
+
+    setupDropZones();
+    loadAllFoodImages();
+  </script>
+</body>
+</html>
