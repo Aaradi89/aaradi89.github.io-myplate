@@ -307,16 +307,16 @@
         <h2>Breakfast</h2>
         <div class="main-plate">
           <div class="plate-zone plate-half drop-zone" data-meal="breakfast" data-zone="vegetable"></div>
-          <div class="plate-zone plate-quarter-top drop-zone" data-meal="breakfast" data-zone="grain"></div>
-          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="breakfast" data-zone="protein"></div>
+          <div class="plate-zone plate-quarter-top drop-zone" data-meal="breakfast" data-zone="quarter"></div>
+          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="breakfast" data-zone="quarter"></div>
         </div>
       </section>
 
       <section class="meal">
         <h2>Snack</h2>
         <div class="snack-circles">
-          <div class="snack-circle drop-zone" data-meal="snack1" data-zone="fruit"></div>
-          <div class="snack-circle drop-zone" data-meal="snack1" data-zone="dairy"></div>
+          <div class="snack-circle drop-zone" data-meal="snack1" data-zone="snack"></div>
+          <div class="snack-circle drop-zone" data-meal="snack1" data-zone="snack"></div>
         </div>
       </section>
 
@@ -324,16 +324,16 @@
         <h2>Lunch</h2>
         <div class="main-plate">
           <div class="plate-zone plate-half drop-zone" data-meal="lunch" data-zone="vegetable"></div>
-          <div class="plate-zone plate-quarter-top drop-zone" data-meal="lunch" data-zone="grain"></div>
-          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="lunch" data-zone="protein"></div>
+          <div class="plate-zone plate-quarter-top drop-zone" data-meal="lunch" data-zone="quarter"></div>
+          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="lunch" data-zone="quarter"></div>
         </div>
       </section>
 
       <section class="meal">
         <h2>Snack</h2>
         <div class="snack-circles">
-          <div class="snack-circle drop-zone" data-meal="snack2" data-zone="fruit"></div>
-          <div class="snack-circle drop-zone" data-meal="snack2" data-zone="dairy"></div>
+          <div class="snack-circle drop-zone" data-meal="snack2" data-zone="snack"></div>
+          <div class="snack-circle drop-zone" data-meal="snack2" data-zone="snack"></div>
         </div>
       </section>
 
@@ -341,8 +341,8 @@
         <h2>Dinner</h2>
         <div class="main-plate">
           <div class="plate-zone plate-half drop-zone" data-meal="dinner" data-zone="vegetable"></div>
-          <div class="plate-zone plate-quarter-top drop-zone" data-meal="dinner" data-zone="grain"></div>
-          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="dinner" data-zone="protein"></div>
+          <div class="plate-zone plate-quarter-top drop-zone" data-meal="dinner" data-zone="quarter"></div>
+          <div class="plate-zone plate-quarter-bottom drop-zone" data-meal="dinner" data-zone="quarter"></div>
         </div>
       </section>
 
@@ -391,10 +391,8 @@
     function imageExists(src) {
       return new Promise(resolve => {
         const img = new Image();
-
         img.onload = () => resolve(true);
         img.onerror = () => resolve(false);
-
         img.src = src;
       });
     }
@@ -453,14 +451,10 @@
       loadingMessage.textContent = "Loading food photos...";
 
       let allImages = [];
-      let report = [];
 
       for (const source of foodSources) {
         const images = await loadImagesForCategory(source);
-
         allImages = allImages.concat(images);
-
-        report.push(`${source.group}: ${images.length}`);
       }
 
       shuffleArray(allImages);
@@ -474,9 +468,6 @@
       } else {
         loadingMessage.textContent = `Loaded ${allImages.length} photos.`;
       }
-
-      console.log("Food loading report:", report.join(" | "));
-      console.log("Loaded images:", allImages);
     }
 
     function displayFoods(images) {
@@ -535,7 +526,7 @@
             return;
           }
 
-          const existingFood = zone.querySelector(".food");
+          const existingFood = getDirectFoodElement(zone);
 
           if (existingFood && existingFood !== food) {
             document.getElementById("foodBank").appendChild(existingFood);
@@ -547,37 +538,72 @@
       });
     }
 
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const randomIndex = Math.floor(Math.random() * (i + 1));
-        [array[i], array[randomIndex]] = [array[randomIndex], array[i]];
-      }
-    }
-
-    function zoneHasExactlyOneFood(mealName, zoneName, requiredGroup) {
-      const zone = document.querySelector(
-        `[data-meal="${mealName}"][data-zone="${zoneName}"]`
+    function getDirectFoodElement(zone) {
+      const foods = Array.from(zone.children).filter(child =>
+        child.classList.contains("food")
       );
 
-      if (!zone) return false;
+      return foods.length > 0 ? foods[0] : null;
+    }
 
-      const foods = zone.querySelectorAll(".food");
+    function getDirectFoodGroup(zone) {
+      const foods = Array.from(zone.children).filter(child =>
+        child.classList.contains("food")
+      );
 
-      return foods.length === 1 && foods[0].dataset.group === requiredGroup;
+      if (foods.length !== 1) {
+        return null;
+      }
+
+      return foods[0].dataset.group;
+    }
+
+    function getZones(mealName, zoneName) {
+      return Array.from(
+        document.querySelectorAll(`[data-meal="${mealName}"][data-zone="${zoneName}"]`)
+      );
     }
 
     function checkMainMeal(mealName) {
+      const vegetableZones = getZones(mealName, "vegetable");
+      const quarterZones = getZones(mealName, "quarter");
+
+      if (vegetableZones.length !== 1 || quarterZones.length !== 2) {
+        return false;
+      }
+
+      const vegetableGroup = getDirectFoodGroup(vegetableZones[0]);
+
+      if (vegetableGroup !== "vegetable") {
+        return false;
+      }
+
+      const quarterGroups = quarterZones
+        .map(zone => getDirectFoodGroup(zone))
+        .sort();
+
       return (
-        zoneHasExactlyOneFood(mealName, "vegetable", "vegetable") &&
-        zoneHasExactlyOneFood(mealName, "grain", "grain") &&
-        zoneHasExactlyOneFood(mealName, "protein", "protein")
+        quarterGroups.length === 2 &&
+        quarterGroups[0] === "grain" &&
+        quarterGroups[1] === "protein"
       );
     }
 
     function checkSnack(mealName) {
+      const snackZones = getZones(mealName, "snack");
+
+      if (snackZones.length !== 2) {
+        return false;
+      }
+
+      const snackGroups = snackZones
+        .map(zone => getDirectFoodGroup(zone))
+        .sort();
+
       return (
-        zoneHasExactlyOneFood(mealName, "fruit", "fruit") &&
-        zoneHasExactlyOneFood(mealName, "dairy", "dairy")
+        snackGroups.length === 2 &&
+        snackGroups[0] === "dairy" &&
+        snackGroups[1] === "fruit"
       );
     }
 
@@ -609,6 +635,13 @@
       const result = document.getElementById("result");
       result.textContent = "";
       result.className = "";
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const randomIndex = Math.floor(Math.random() * (i + 1));
+        [array[i], array[randomIndex]] = [array[randomIndex], array[i]];
+      }
     }
 
     setupDropZones();
